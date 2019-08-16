@@ -1,0 +1,45 @@
+input[type="image"] {
+    height: 40%;
+}
+
+img {
+    height: 40%;
+}
+
+h1 {
+    text-align:center;
+}
+
+input[type="image"]:hover {
+    opacity:.7;
+}
+
+#img1_container {
+    float: left;
+    margin-left: 25%;
+}
+
+
+.img_choices_container {
+    text-align: center;
+    display: block;
+}
+
+#root_img_container {
+    text-align: center;
+}
+
+#amt_id {
+    color: grey;
+}
+
+.ui-progressbar {
+  height: 2em;
+  text-align: left;
+  overflow: hidden;
+}
+.ui-progressbar .ui-progressbar-value {
+  margin: -1px;
+  height: 100%;
+  background-color: #ccc;
+}

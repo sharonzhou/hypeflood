@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block body %}
+<h1>Task Description</h1>
+<h2>You will be shown a series of photos in sets of 3 at a time.</br> </h2>
+<h3>1 image will be on top, and 2 below. </br>
+    Click one of the 2 bottom images that looks more similar to the top one, and you'll see the next image triplet.</h3><h4> After 500 pairings (it takes about 2-5 min), you'll be given a completion code. Your scores will be compared to majority vote for accuracy. Please submit the completion code.</h4>
+
+<img id="example_img" src="/static/img/example.png">
+</br>
+<input id="amt_id" type="text" value="AMT Worker ID" onfocus="if (this.value=='AMT Worker ID') this.value='';"/>
+<input id="start_task_btn" type="submit">
+
+{% endblock %}
