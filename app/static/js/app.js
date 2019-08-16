@@ -37,81 +37,87 @@ $(document).ready(function () {
         }
     });
     
-    
-	$('.image_select').bind("click", function(data) {
-	 	root_img = $('#root_img').attr('value')
-	 	img1 = $('#img1').val()
-	 	img2 = $('#img2').val()
-	 	img_selected = $(this).val();
-	 	
-        if (img_selected == null) {
-	 		console.log('no image selected')
-	 	} else {
+   
+    $("#submit-btn").click(function() {
+        selected_radio = $('input[name=selected]:checked')
+        selected = selected_radio.val()
+        if (selected == null) {
+            console.log('Nothing selected.');
+            return
+        } else {
+           selected_radio.prop('checked', false); 
+        }
 
-	 		data = {}
-	 		data['root_img'] = root_img
-	 		data['img1'] = img1
-	 		data['img2'] = img2
-	 		data['img_selected'] = img_selected
-            data['counter'] = $('#counter').val() + 1
+        data = {}
+        data['img'] = $('#img').val() // TODO: or .src() - see below
+        data['selected'] = selected 
+        data['counter'] = $('#counter').val() + 1
+        
+        function IsJsonString(str) {
+            try {
+                JSON.parse(str);
+            } catch (e) {
+                return false;
+            }
+            return true;
+        }
+        data = JSON.stringify(data)
+        console.log(IsJsonString(data))
 
-	 		function IsJsonString(str) {
-			    try {
-			        JSON.parse(str);
-			    } catch (e) {
-			        return false;
-			    }
-			    return true;
-			}
-			data = JSON.stringify(data)
-	 	    console.log(IsJsonString(data))
+        $.ajax({
+            type: "POST",
+            processData: false,
+            contentType: false,
+            cache: false,
+            data: data,
+            url: '/feedback',
+            success: function (response) {
+                response = $.parseJSON(response);
+                data = response['data'];
 
-			$.ajax({
-	            type: "POST",
-	            processData: false,
-	            contentType: false,
-	            cache: false,
-	            data: data,
-	            url: '/compute',
-	            success: function (response) {
-	                response = $.parseJSON(response);
-        	 		data = response['data'];
+                counter = data['counter']
+                if (counter > triplets_per_task) {
+                    // Redirect
+                    $(location).attr('href', '/finish');
+                } else {
 
-                    counter = data['counter']
-                    if (counter > triplets_per_task) {
-                        // Redirect
-                        $(location).attr('href', '/finish');
+                    console.log('data', data)
+
+                    // TODO: obfuscated data['img']
+                    next_img = data['img']
+                    $('#img').val(next_img);
+                    
+                    // Switch out images
+                    // TODO: S3 bucket here
+                    ffhq_dir = '/static/img/ffhq_images/ffhqrealtwo/'
+                    next_img_name = id2img[next_img]
+                    $('#img').attr('src', ffhq_dir + next_img_name);
+
+
+                    // TODO: triplets per task -> tutorial + img_per_task
+                    $("#progressbar")
+                        .progressbar({
+                        value: counter,
+                        max: triplets_per_task
+                        })
+                    $('#progressbar_text').html(counter)
+
+                    // Display correctness
+                    if (data['correctness'] == '1') {
+                        correctness_text = 'Correct!'
                     } else {
-
-                        next_root_img = data['root_img']
-                        next_img1 = data['img1']
-                        next_img2 = data['img2']
-
-                        $('#root_img').attr('value', next_root_img);
-                        $('#img1').val(next_img1);
-                        $('#img2').val(next_img2);
-                        
-                        // Switch out images
-                        ffhq_dir = '/static/img/ffhq_images/ffhqrealtwo/'
-                        next_root_img_name = id2img[next_root_img]
-                        next_img1_name = id2img[next_img1]
-                        next_img2_name = id2img[next_img2]
-                        $('#root_img').attr('src', ffhq_dir + next_root_img_name);
-                        $('#img1').attr('src', ffhq_dir + next_img1_name);
-                        $('#img2').attr('src', ffhq_dir + next_img2_name);
-
-                        $("#progressbar")
-                            .progressbar({
-                            value: counter,
-                            max: triplets_per_task
-                            })
-                        $('#progressbar_text').html(counter)
+                        correctness_text = 'Incorrect.'
                     }
-	            }
-	        });
 
+                    $('#correctness').html(correctness_text)
+                    $('#correctness').fadeIn().delay(250).fadeOut();
+	            
+                }
+            
+            }
 
-	 	}
+        });
 
-	});
+    });
+
 });

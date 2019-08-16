@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 
 {% block body %}
-<div id="progressbar"><span id="progressbar_text" style="position:absolute; margin-left:10px; margin-top:8px; "></span></div></br>
-<div id="root_img_container"><img id='root_img' src="{{images.root_img_filepath}}" height="100px" value={{images.root_img}}></div>
-	</br>
-    <h1>Which looks more similar to the photo above?</h1>
-	</br>
-    <div class="img_choices_container">
-        <div id="img1_container">
-            <label><input id="img1" class="image_select" type="image" src={{images.img1_filepath}}  name="s" value={{images.img1}} required> </label><br>
-        </div>
-        <div id="img2_container">
-            <label><input id="img2" class="image_select" type="image" src={{images.img2_filepath}} name="s" value={{images.img2}}> </label><br>
-        </div>
+    <div id="progressbar">
+        <span id="progressbar_text" style="position:absolute; margin-left:10px; margin-top:8px; "></span>
     </div>
 
+    <div id="correctness"></div>
+    
+    </br>
+
+    <input id="img" class="image_select" type="image" src={{image.img_filepath}} value={{image.img}}>
+
+    <input type="radio" name="selected" value="real"> Real<br>
+    <input type="radio" name="selected" value="fake"> Fake<br>
+
+    <button id='submit-btn'> Submit</button>
 {% endblock %}

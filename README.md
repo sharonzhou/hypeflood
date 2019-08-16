@@ -34,6 +34,11 @@ $ brew services restart postgresql
 $ createdb my_practical_db_name
 ```
 
+```
+# Manually restart postgres if brew services does so unsuccessfully
+pg_ctl -D /usr/local/var/postgres -l /usr/local/var/postgres/server.log start
+```
+
 4.  Get your database username. Below, it's **my_cool_username**.
 
 ```
