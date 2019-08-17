@@ -1,23 +1,12 @@
 
 $(document).ready(function () {
-    num_images = 500;
-    $.getJSON("/static/constants.json", function(constants) {
-        triplets_per_task = constants['triplets_per_task']
-        $.getJSON("/static/img/images.json", function(json_images) {
-            id2img = json_images['id2img']
-            img2id = json_images['img2id']
-            num_images = Object.keys(img2id).length
-            if ('num_images' in constants) {
-                num_images = constants['num_images']
-            }
-            ffhq_dir = '/static/img/ffhq_images/ffhqrealtwo/'
-        });
-    });
+    num_tutorial = 50;
+    num_per_task = 100;
 
     $('#start_task_btn').bind('click', function(data) {
         amt_id = $('#amt_id').val()
         if (amt_id == null) {
-            console.log('no amt id given');
+            console.log('No AMT id given.');
         } else {
             data = {}
             console.log(amt_id);
@@ -49,7 +38,8 @@ $(document).ready(function () {
         }
 
         data = {}
-        data['img'] = $('#img').val() // TODO: or .src() - see below
+        data['img'] = $('#img').attr('src') 
+        data['bg-div'] = $('#wrapper').css('background-image')
         data['selected'] = selected 
         data['counter'] = $('#counter').val() + 1
         
@@ -62,7 +52,6 @@ $(document).ready(function () {
             return true;
         }
         data = JSON.stringify(data)
-        console.log(IsJsonString(data))
 
         $.ajax({
             type: "POST",
@@ -76,33 +65,28 @@ $(document).ready(function () {
                 data = response['data'];
 
                 counter = data['counter']
-                if (counter > triplets_per_task) {
+                if (counter > num_per_task) {
                     // Redirect
                     $(location).attr('href', '/finish');
                 } else {
 
-                    console.log('data', data)
+                    bg_div = data['bg-div']
+                    $('#wrapper').css('background-image', 'url(' + bg_div + ')');
 
-                    // TODO: obfuscated data['img']
-                    next_img = data['img']
-                    $('#img').val(next_img);
-                    
                     // Switch out images
-                    // TODO: S3 bucket here
-                    ffhq_dir = '/static/img/ffhq_images/ffhqrealtwo/'
-                    next_img_name = id2img[next_img]
-                    $('#img').attr('src', ffhq_dir + next_img_name);
+                    next_img = data['img']
+                    $('#img').attr('src', next_img);
 
-
-                    // TODO: triplets per task -> tutorial + img_per_task
                     $("#progressbar")
                         .progressbar({
                         value: counter,
-                        max: triplets_per_task
+                        max: num_per_task
                         })
                     $('#progressbar_text').html(counter)
-
+                    
                     // Display correctness
+                    $('#frac_correct').html(data['frac_correct'])
+                    
                     if (data['correctness'] == '1') {
                         correctness_text = 'Correct!'
                     } else {
@@ -111,7 +95,7 @@ $(document).ready(function () {
 
                     $('#correctness').html(correctness_text)
                     $('#correctness').fadeIn().delay(250).fadeOut();
-	            
+                   
                 }
             
             }

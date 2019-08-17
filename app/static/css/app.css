@@ -1,32 +1,17 @@
-input[type="image"] {
-    height: 40%;
-}
-
-img {
-    height: 40%;
+#img {
+    height: 100%;
+    width: 100%;
+    opacity: .01;
+    display: none;
 }
 
 h1 {
     text-align:center;
 }
 
-input[type="image"]:hover {
-    opacity:.7;
-}
-
 #img1_container {
     float: left;
     margin-left: 25%;
-}
-
-
-.img_choices_container {
-    text-align: center;
-    display: block;
-}
-
-#root_img_container {
-    text-align: center;
 }
 
 #amt_id {
@@ -42,4 +27,10 @@ input[type="image"]:hover {
   margin: -1px;
   height: 100%;
   background-color: #ccc;
+}
+
+#wrapper {
+    width: 256px;
+    height: 256px;
+    background-image: url('https://hypeaug2019.s3.amazonaws.com/Hype_120/spammers/output000.jpg')
 }

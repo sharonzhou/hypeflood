@@ -1,4 +1,4 @@
 {
     "num_images": 100,
-    "triplets_per_task": 10
+    "num_per_task": 10
 }

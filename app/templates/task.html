@@ -7,9 +7,13 @@
 
     <div id="correctness"></div>
     
+    <span id="frac_correct"></span>
+    
     </br>
 
-    <input id="img" class="image_select" type="image" src={{image.img_filepath}} value={{image.img}}>
+    <div id="wrapper"> 
+        <input id="img" class="image_select" type="image" src={{image.img}} >
+    </div>
 
     <input type="radio" name="selected" value="real"> Real<br>
     <input type="radio" name="selected" value="fake"> Fake<br>
