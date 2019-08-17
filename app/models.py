@@ -19,6 +19,7 @@ class Selection(db.Model):
     img_src = db.Column(db.String())
     
     selected = db.Column(db.String())
+    correctness = db.Column(db.Boolean())
 
     uid = db.Column(db.Integer(), db.ForeignKey(Worker.id))
 

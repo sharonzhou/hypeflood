@@ -65,7 +65,7 @@ $(document).ready(function () {
                 data = response['data'];
 
                 counter = data['counter']
-                if (counter > num_per_task) {
+                if ((counter > num_per_task) || (counter == num_tutorial && frac_correct < .68) || (data['spammer'])) {
                     // Redirect
                     $(location).attr('href', '/finish');
                 } else {

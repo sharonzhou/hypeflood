@@ -56,14 +56,28 @@ def login():
         print('session is', session)
         return render_template("index.html")
 
+
 @app.route("/finish", methods=['GET', 'POST'])
 def finish():
     # End and give completion code
-    # TODO: log out bad ppl early and update passed_tutorial = 0 on their db
     if 'counter' in session and session['counter'] > num_per_task:
         partial_code = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(9))
         completion_code = "SH" + partial_code + "DEZ"
         return render_template("finish.html", completion_code=completion_code)
+    
+    # Did not pass tutorial
+    elif ('counter' in session) and (session['counter'] == num_tutorial) and (session['num_correct'] / float(session['counter']) < .68):
+
+        # Update worker in db - not passed tutorial
+        worker = Worker.query.get(session['uid'])
+        worker.passed_tutorial = 0
+        db.session.commit()
+
+        partial_code = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(9))
+        completion_code = "ZE" + partial_code + "AHS"
+        return render_template("sorry.html", completion_code=completion_code)
+    
+    # Trying to access this page, redirecting to home
     else:
         return render_template("index.html")
 
@@ -96,10 +110,18 @@ def feedback():
         
         img_src = data['bg-div']
         img_name = img_src.split('/')[-1]
+        
+        # Sasha only, where naming of files correspond to fake/real
+        if ('fake' in data['bg-div']) or ('output' in data['bg-div']):
+            correctness = data['selected'] == 'fake'
+        else:
+            correctness = data['selected'] == 'real'
+        
         selection = Selection(
                     img_name=img_name,
                     img_src=img_src,
                     selected=data['selected'],
+                    correctness=correctness,
                     uid=session['uid']
                     )
 
@@ -113,40 +135,34 @@ def feedback():
         session['counter'] += 1
         print('counter is', session['counter'])
 
+        # Increment num correct counter
         if 'num_correct' not in session:
             session['num_correct'] = 0.
-        
-        next_data = {}
-       
-        # Sasha only, where naming of files correspond to fake/real
-        if ('fake' in data['bg-div']) or ('output' in data['bg-div']):
-            correctness = data['selected'] == 'fake'
-        else:
-            correctness = data['selected'] == 'real'
-        
-        # Increment num correct counter
         if correctness:
             session['num_correct'] += 1
+        frac_correct = round(session["num_correct"] / float(session["counter"]), 2)
 
+        next_data = {}
         #next_data["bg-div"] = np.random.choice(num_images)
         data_dir_id = session['data_dir_id']
 
         # Check if gone through tutorial or on to worker's own task
         if session['counter'] >= num_tutorial:
-            # Gone through tutorial
-            # TODO: Check if passed tutorial
-            # If not, log out and give completion code with certain money amount
-
+            # Check if passed tutorial
+            if frac_correct < .68:
+                # Log out and give completion code with certain money amount
+                next_data['spammer'] = True
+                return json.dumps({"data": next_data, "success": True})
             # Else, continue
             worker_url_idx = session['counter'] - num_tutorial
             next_data["bg-div"] = worker_urls[str(data_dir_id)][worker_url_idx]
         else:
             # Still in tutorial
             tutorial_url_idx = session['counter']
-            next_data["bg-div"] = tutorial_img_urls[tutorial_url_idx]
+            next_data["bg-div"] = worker_urls['spammers'][tutorial_url_idx]
 
         next_data["counter"] = session["counter"]
-        next_data["frac_correct"] = str(round(session["num_correct"] / float(session["counter"]), 2))
+        next_data["frac_correct"] = str(frac_correct)
         next_data["correctness"] = correctness
         
         print('next data', next_data)
@@ -187,10 +203,12 @@ def get_files():
 
     # Sasha only -> randomize order of each worker's set of urls
     shuffled_worker_urls = {}
+    print(worker_urls['spammers'])
     for data_dir_id, img_urls in worker_urls.items():
         np.random.shuffle(img_urls)
         shuffled_worker_urls[data_dir_id] = img_urls
     worker_urls = shuffled_worker_urls
+    print(worker_urls['spammers'])
 
     # Sasha only -> move to constants. In future, take from some user-specified parameter of desired CI.
     num_tutorial = len(tutorial_img_urls) # 50
@@ -209,7 +227,6 @@ def get_files():
 
     # Storing this locally for now - should be on requester side, not this worker facing app
     # Which then creates a json file containing this object or something
-    print(s3_data)
     with open('app/static/s3_data.json', 'w') as f:
         j = json.dumps(s3_data)
         f.write(j)
