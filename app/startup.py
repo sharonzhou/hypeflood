@@ -9,7 +9,6 @@ import os
 import secrets
 from app import app
 
-app.config['SECRET_KEY']=secrets.token_urlsafe(16)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
 
 db = SQLAlchemy(app)
