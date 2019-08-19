@@ -2,21 +2,29 @@
 
 {% block body %}
     <div id="progressbar">
-        <span id="progressbar_text" style="position:absolute; margin-left:10px; margin-top:8px; "></span>
+        <span id="progressbar-text"></span>
     </div>
 
-    <div id="correctness"></div>
-    
-    <span id="frac_correct"></span>
+    <div id="frac-correct-wrapper">
+        Percent correct: <span id="frac-correct">N/A</span>
+        <span id="correctness"></span>
+    </div>
     
     </br>
 
     <div id="wrapper"> 
-        <input id="img" class="image_select" type="image" src={{image.img}} >
+        <input id="img" type="image" src={{image.img}} >
     </div>
 
-    <input type="radio" name="selected" value="real"> Real<br>
-    <input type="radio" name="selected" value="fake"> Fake<br>
+    <div id="radio-wrapper-real" class="radio-wrapper">
+        <input type="radio" name="selected" value="real"> Real
+    </div>
+    <div id="radio-wrapper-fake" class="radio-wrapper">
+        <input type="radio" name="selected" value="fake"> Fake
+    </div>
+
+    </br>
 
     <button id='submit-btn'> Submit</button>
+    
 {% endblock %}

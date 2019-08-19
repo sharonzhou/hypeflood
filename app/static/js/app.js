@@ -1,7 +1,11 @@
-
+var idle_time = 0;
 $(document).ready(function () {
-    num_tutorial = 50;
-    num_per_task = 100;
+    
+    $.getJSON("/static/constants.json", function(constants) {
+        num_tutorial = constants['num_tutorial']
+        num_per_task = constants['num_per_task']
+        num_images = constants['num_images']
+    })
 
     $('#start_task_btn').bind('click', function(data) {
         amt_id = $('#amt_id').val()
@@ -20,13 +24,15 @@ $(document).ready(function () {
 	            data: data,
 	            url: '/login',
 	            success: function (response) {
-                    $(location).attr('href', '/task')
+                    response = $.parseJSON(response);
+                    data = response["data"];
+                    console.log(data);
+                    $(location).attr('href', data['url_']);
                 }
             });
         }
-    });
-    
-   
+    }); 
+
     $("#submit-btn").click(function() {
         selected_radio = $('input[name=selected]:checked')
         selected = selected_radio.val()
@@ -65,7 +71,10 @@ $(document).ready(function () {
                 data = response['data'];
 
                 counter = data['counter']
-                if ((counter > num_per_task) || (counter == num_tutorial && frac_correct < .68) || (data['spammer'])) {
+                frac_correct = data['frac_correct']
+                is_spammer = data['spammer']
+                if ((counter > num_per_task) || (counter == num_tutorial && frac_correct < .68) || is_spammer) {
+
                     // Redirect
                     $(location).attr('href', '/finish');
                 } else {
@@ -73,24 +82,28 @@ $(document).ready(function () {
                     bg_div = data['bg-div']
                     $('#wrapper').css('background-image', 'url(' + bg_div + ')');
 
+
                     // Switch out images
                     next_img = data['img']
                     $('#img').attr('src', next_img);
 
+
+                    // Update progress bar
                     $("#progressbar")
                         .progressbar({
                         value: counter,
                         max: num_per_task
                         })
-                    $('#progressbar_text').html(counter)
+                    $('#progressbar-text').html(counter)
                     
+
                     // Display correctness
-                    $('#frac_correct').html(data['frac_correct'])
+                    $('#frac-correct').html(frac_correct)
                     
                     if (data['correctness'] == '1') {
                         correctness_text = 'Correct!'
                     } else {
-                        correctness_text = 'Incorrect.'
+                        correctness_text = 'Incorrect'
                     }
 
                     $('#correctness').html(correctness_text)
@@ -103,5 +116,27 @@ $(document).ready(function () {
         });
 
     });
+
+    // Increment the idle time counter every minute.
+    var idle_interval = setInterval(timerIncrement, 1000); // 1 sec
+
+    // Zero the idle timer on mouse movement.
+    $(this).mousemove(function (e) {
+        idle_time = 0;
+    });
+
+    $(this).keypress(function (e) {
+        idle_time = 0;
+    });
+
+    function timerIncrement() {
+        idle_time = idle_time + 1;
+        if (idle_time > 8) { // 8 sec
+            // Redirect, if not already redirected or at end task screen
+            if ((window.location.href.indexOf("idle") == -1) && (window.location.href.indexOf("finish") == -1)) {
+                $(location).attr('href', '/idle');
+            }
+        }
+    }
 
 });

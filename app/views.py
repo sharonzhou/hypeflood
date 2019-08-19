@@ -10,6 +10,8 @@ import random
 import string
 import boto3
 from botocore.handlers import disable_signing
+import hashlib
+
 
 # Local images
 with open('app/static/s3_data.json') as f:
@@ -17,11 +19,14 @@ with open('app/static/s3_data.json') as f:
     img_urls = data['img_urls']
     worker_urls = data['worker_urls']
     tutorial_img_urls = data['tutorial_img_urls']
-    
-    # Sasha only -> move to constants
+ 
+# Local constants
+with open('app/static/constants.json') as f:
+    data = json.load(f)
     num_tutorial = data['num_tutorial']
     num_per_task = data['num_per_task']
     num_images = data['num_images']
+
 
 @app.route("/")
 def index():
@@ -37,62 +42,159 @@ def login():
         print(data)
         amt_id = data['amt_id']
 
-        # Sasha only: assign data dir id
-        # Get last worker who is non-spammer, get their data_dir_id, increment by 1
-        prev_worker_passed = Worker.query.filter(Worker.passed_tutorial != 0).order_by(Worker.id.desc()).first()
-        if prev_worker_passed is None:
-            print('First worker')
-            data_dir_id = 0
-        else:
-            data_dir_id = prev_worker_passed.data_dir_id + 1
+        # Check if worker already did task
+        check_worker_exists = Worker.query.filter(Worker.amt_id == amt_id).first()
+        if check_worker_exists is not None:
+            print(f'Repeat worker {check_worker_exists}')
+            
+            # Save AMT id for checking in finish()
+            session['amt_id'] = amt_id
 
+            next_data = { 'url_': '/finish' }
+            return json.dumps({"data": next_data, "success": True})
+            
+        
+        # Sasha only: assign data dir id
+        # Get all unassigned data_dir_ids
+        unassigned_data_dir_ids = DataDir.query.filter(DataDir.status == "unassigned").all()
+
+        # If at least one exists, the select a random one
+        if len(unassigned_data_dir_ids) > 0:
+            data_dir = random.choice(unassigned_data_dir_ids)
+            data_dir_id = data_dir.id
+            data_dir.status = "softassigned"
+            db.session.commit()
+        else:
+            # Look for soft assigned ones (means worker still going through tutorial) and randomly select one
+            soft_assigned_data_dir_ids = DataDir.query.filter(DataDir.status == "softassigned").all()
+            if len(soft_assigned_data_dir_ids) > 0:
+                data_dir = random.choice(soft_assigned_data_dir_ids)
+                data_dir_id = data_dir.id
+            else:
+                # Look for assigned ones and randomly select one
+                assigned_data_dir_ids = DataDir.query.filter(DataDir.status == "assigned").all() 
+                if len(assigned_data_dir_ids) > 0:
+                    data_dir = random.choice(assigned_data_dir_ids)
+                    data_dir_id = data_dir.id
+                else:
+                    # Else, everything is done... so redirect to page saying task is over
+                    next_data = { 'url_': '/hitover' } #TODO
+                    next_data = { 'url_': '/index' }
+                    return json.dumps({"data": next_data, "success": True})
+        
         uid = Worker(amt_id=amt_id,
-                    data_dir_id=data_dir_id)
+                     data_dir_id=data_dir_id)
 
         db.session.add(uid)
         db.session.commit()
+
         session['uid'] = uid.id
+        session['amt_id'] = amt_id
+
         session['data_dir_id'] = data_dir_id
+
         print('session is', session)
-        return render_template("index.html")
+
+        next_data = { 'url_': '/task' }
+        return json.dumps({"data": next_data, "success": True})
 
 
 @app.route("/finish", methods=['GET', 'POST'])
 def finish():
     # End and give completion code
     if 'counter' in session and session['counter'] > num_per_task:
-        partial_code = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(9))
-        completion_code = "SH" + partial_code + "DEZ"
+        # partial_code = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(9))
+        hash_string = str(session['amt_id']) + 'donethanks'
+        hashed_code = hashlib.sha1(hash_string.encode('utf-8')).hexdigest()[:10].upper()
+        completion_code = "SH" + hashed_code + "DEZ"
+        
+        # Update worker in db - complete
+        worker = Worker.query.get(session['uid'])
+        worker.is_finished = True
+        worker.completion_code = completion_code
+        db.session.commit()
+
+        # Update data dir in db - complete
+        data_dir_id = session['data_dir_id']
+        data_dir = DataDir.query.get(data_dir_id)
+        data_dir.status = "complete"
+        db.session.commit()
+        
         return render_template("finish.html", completion_code=completion_code)
     
     # Did not pass tutorial
-    elif ('counter' in session) and (session['counter'] == num_tutorial) and (session['num_correct'] / float(session['counter']) < .68):
+    elif ('spammer' in session and session['spammer'] is True) or (('counter' in session) and (session['counter'] == num_tutorial) and (session['num_correct'] / float(session['counter']) < .68)):
 
+        # (in)completion code for incomplete task
+        hash_string = str(session['amt_id']) + 'epicfail'
+        hashed_code = hashlib.sha1(hash_string.encode('utf-8')).hexdigest()[:10].upper()
+        completion_code = "EDZ" + hashed_code + "HS"
+        
         # Update worker in db - not passed tutorial
         worker = Worker.query.get(session['uid'])
         worker.passed_tutorial = 0
+        worker.completion_code = completion_code
         db.session.commit()
 
-        partial_code = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(9))
-        completion_code = "ZE" + partial_code + "AHS"
+        # Update data dir in db - unassigned
+        data_dir_id = session['data_dir_id']
+        data_dir = DataDir.query.get(data_dir_id)
+        data_dir.status = "unassigned"
+        db.session.commit()
+
         return render_template("sorry.html", completion_code=completion_code)
     
-    # Trying to access this page, redirecting to home
+    # Trying to access this page, redirecting to home unless repeat worker
     else:
+        # Check if worker already exists
+        if 'amt_id' in session:
+            amt_id = session['amt_id']
+            check_worker_exists = Worker.query.filter(Worker.amt_id == amt_id).first()
+            if check_worker_exists is not None:
+                completion_code = check_worker_exists.completion_code
+                if completion_code[:2] == "SH":
+                    return render_template("finish.html", completion_code=completion_code)
+                elif completion_code[:3] == "EDZ":
+                    return render_template("sorry.html", completion_code=completion_code)
+                elif completion_code == "incomplete":
+                    return render_template("repeat.html")
+
         return render_template("index.html")
+
+
+@app.route("/idle", methods=['GET', 'POST'])
+def idle():
+    # Active user no longer exists
+    if 'uid' not in session:
+        return render_template("index.html")
+
+    # Update user in db to have passed_tutorial = 0
+    worker = Worker.query.get(session['uid'])
+    worker.passed_tutorial = 0
+    db.session.commit()
+
+    session['spammer'] = True
+
+    # Redirect to home
+    return render_template("index.html")
 
 
 @app.route("/task", methods=['GET', 'POST'])
 def start():
+    # Active user no longer exists
+    if 'uid' not in session:
+        return render_template("index.html")
+
     uid = session['uid'] 
     print('uid is', uid)
 
-    data_dir_id = session['data_dir_id']
-
     # Return initial image
     #img = np.random.choice(num_images)
+    
+    data_dir_id = session['data_dir_id']
+    data_dir_name = str(data_dir_id - 1)
 
-    worker_imgs = worker_urls[str(data_dir_id)]
+    worker_imgs = worker_urls[data_dir_name]
     img_filepath = worker_imgs[0] 
 
     image = {}
@@ -134,34 +236,61 @@ def feedback():
             session['counter'] = 0
         session['counter'] += 1
         print('counter is', session['counter'])
+        counter = session['counter']
 
         # Increment num correct counter
         if 'num_correct' not in session:
             session['num_correct'] = 0.
         if correctness:
             session['num_correct'] += 1
-        frac_correct = round(session["num_correct"] / float(session["counter"]), 2)
+        frac_correct = round(session["num_correct"] / float(counter), 2)
 
         next_data = {}
         #next_data["bg-div"] = np.random.choice(num_images)
-        data_dir_id = session['data_dir_id']
 
         # Check if gone through tutorial or on to worker's own task
-        if session['counter'] >= num_tutorial:
+        if counter >= num_tutorial:
             # Check if passed tutorial
-            if frac_correct < .68:
+            if counter == num_tutorial and frac_correct < .68:
+
                 # Log out and give completion code with certain money amount
                 next_data['spammer'] = True
+                session['spammer'] = True
+
+                print('spammer detected. next data', next_data)
+
                 return json.dumps({"data": next_data, "success": True})
-            # Else, continue
-            worker_url_idx = session['counter'] - num_tutorial
-            next_data["bg-div"] = worker_urls[str(data_dir_id)][worker_url_idx]
+            
+            else:
+                # Else, continue
+
+                if counter == num_tutorial:
+                    # Update worker in db - passed tutorial
+                    worker = Worker.query.get(session['uid'])
+                    worker.passed_tutorial = 1
+                    db.session.commit()
+
+                    session['spammer'] = False
+
+                    # Update data dir in db - assigned
+                    data_dir = DataDir.query.get(session['data_dir_id'])
+                    data_dir.status = "assigned"
+                    db.session.commit()
+
+                worker_url_idx = counter - num_tutorial
+               
+                data_dir_id = session['data_dir_id']
+                data_dir_name = str(data_dir_id - 1)
+                
+                next_data["bg-div"] = worker_urls[data_dir_name][worker_url_idx]
+                next_data['spammer'] = False
         else:
             # Still in tutorial
-            tutorial_url_idx = session['counter']
+            tutorial_url_idx = counter
             next_data["bg-div"] = worker_urls['spammers'][tutorial_url_idx]
+            next_data['spammer'] = False
 
-        next_data["counter"] = session["counter"]
+        next_data["counter"] = counter
         next_data["frac_correct"] = str(frac_correct)
         next_data["correctness"] = correctness
         
@@ -171,6 +300,9 @@ def feedback():
         print('get request')
         return None
 
+@app.route("/hitover")
+def hitover():
+    return render_template("hitover.html")
 
 # S3 preprocess step/endpoint
 @app.route('/files')

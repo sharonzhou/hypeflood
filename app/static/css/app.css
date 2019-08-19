@@ -32,5 +32,47 @@ h1 {
 #wrapper {
     width: 256px;
     height: 256px;
+    margin: auto;
     background-image: url('https://hypeaug2019.s3.amazonaws.com/Hype_120/spammers/output000.jpg')
+}
+
+#progressbar-text {
+    position: absolute;
+    margin-left: 10px;
+    margin-top: 8px;
+}
+
+#radio-wrapper-real {
+    float: left;
+} 
+
+#radio-wrapper-fake {
+    float: right;
+}
+
+.radio-wrapper {
+    margin: 10%;
+}
+
+#submit-btn {
+    margin-top: 10%;
+    margin-left: 24%;
+    padding: 13 22;
+    border: none;
+    background-color: #c1490f;
+    color: white;
+    border-radius: 8px;
+    font-size: 12pt;
+}
+
+#frac-correct {
+    color: #c1490f;
+}
+
+#frac-correct-wrapper {
+    font-size: 14pt;
+}
+
+#correctness {
+    margin-left: 20px;
 }

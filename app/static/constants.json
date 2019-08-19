@@ -1,4 +1,5 @@
 {
-    "num_images": 100,
-    "num_per_task": 10
+    "num_tutorial": 50,
+    "num_per_task": 100,
+    "num_images": 100
 }
