@@ -26,6 +26,7 @@ with open('app/static/constants.json') as f:
     num_tutorial = data['num_tutorial']
     num_per_task = data['num_per_task']
     num_images = data['num_images']
+    tutorial_pass_acc = data['tutorial_pass_acc']
 
 
 @app.route("/")
@@ -123,7 +124,7 @@ def finish():
         return render_template("finish.html", completion_code=completion_code)
     
     # Did not pass tutorial
-    elif ('spammer' in session and session['spammer'] is True) or (('counter' in session) and (session['counter'] == num_tutorial) and (session['num_correct'] / float(session['counter']) < .68)):
+    elif ('spammer' in session and session['spammer'] is True) or (('counter' in session) and (session['counter'] == num_tutorial) and (session['num_correct'] / float(session['counter']) < tutorial_pass_acc)):
 
         # (in)completion code for incomplete task
         hash_string = str(session['amt_id']) + 'epicfail'
@@ -251,7 +252,7 @@ def feedback():
         # Check if gone through tutorial or on to worker's own task
         if counter >= num_tutorial:
             # Check if passed tutorial
-            if counter == num_tutorial and frac_correct < .68:
+            if counter == num_tutorial and frac_correct < tutorial_pass_acc:
 
                 # Log out and give completion code with certain money amount
                 next_data['spammer'] = True

@@ -5,6 +5,7 @@ $(document).ready(function () {
         num_tutorial = constants['num_tutorial']
         num_per_task = constants['num_per_task']
         num_images = constants['num_images']
+        tutorial_pass_acc = constants['tutorial_pass_acc']
     })
 
     $('#start_task_btn').bind('click', function(data) {
@@ -73,7 +74,7 @@ $(document).ready(function () {
                 counter = data['counter']
                 frac_correct = data['frac_correct']
                 is_spammer = data['spammer']
-                if ((counter >= num_per_task) || (counter == num_tutorial && frac_correct < .68) || is_spammer) {
+                if ((counter >= num_per_task) || (counter == num_tutorial && frac_correct < tutorial_pass_acc) || is_spammer) {
 
                     // Redirect
                     $(location).attr('href', '/finish');

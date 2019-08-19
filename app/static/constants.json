@@ -1,5 +1,6 @@
 {
     "num_tutorial": 50,
     "num_per_task": 100,
-    "num_images": 100
+    "num_images": 100,
+    "tutorial_pass_acc": 0.5
 }
