@@ -102,7 +102,7 @@ def login():
 @app.route("/finish", methods=['GET', 'POST'])
 def finish():
     # End and give completion code
-    if 'counter' in session and session['counter'] > num_per_task:
+    if 'counter' in session and session['counter'] >= num_per_task:
         # partial_code = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(9))
         hash_string = str(session['amt_id']) + 'donethanks'
         hashed_code = hashlib.sha1(hash_string.encode('utf-8')).hexdigest()[:10].upper()

@@ -73,7 +73,7 @@ $(document).ready(function () {
                 counter = data['counter']
                 frac_correct = data['frac_correct']
                 is_spammer = data['spammer']
-                if ((counter > num_per_task) || (counter == num_tutorial && frac_correct < .68) || is_spammer) {
+                if ((counter >= num_per_task) || (counter == num_tutorial && frac_correct < .68) || is_spammer) {
 
                     // Redirect
                     $(location).attr('href', '/finish');
