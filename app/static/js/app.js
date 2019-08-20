@@ -48,7 +48,6 @@ $(document).ready(function () {
         data['img'] = $('#img').attr('src') 
         data['bg-div'] = $('#wrapper').css('background-image')
         data['selected'] = selected 
-        data['counter'] = $('#counter').val() + 1
         
         function IsJsonString(str) {
             try {
@@ -71,12 +70,9 @@ $(document).ready(function () {
                 response = $.parseJSON(response);
                 data = response['data'];
 
-                counter = data['counter']
-                frac_correct = data['frac_correct']
-                is_spammer = data['spammer']
-                if ((counter >= num_per_task) || (counter == num_tutorial && frac_correct < tutorial_pass_acc) || is_spammer) {
-
-                    // Redirect
+                is_finished = data['is_finished']
+                if (is_finished) {
+                    // Redirect - did not pass tutorial or completed last image
                     $(location).attr('href', '/finish');
                 } else {
 
@@ -90,6 +86,7 @@ $(document).ready(function () {
 
 
                     // Update progress bar
+                    counter = data['counter']
                     $("#progressbar")
                         .progressbar({
                         value: counter,
@@ -99,6 +96,7 @@ $(document).ready(function () {
                     
 
                     // Display correctness
+                    frac_correct = data['frac_correct']
                     $('#frac-correct').html(frac_correct)
                     
                     if (data['correctness'] == '1') {

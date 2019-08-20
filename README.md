@@ -62,16 +62,19 @@ my_practical_db_name=# \q
 $ export DATABASE_URL="postgresql://my_cool_username@localhost/my_practical_db_name"
 ```
 
+Or put this into a file called `env.sh` which you can source every time you enter the directory and want to use the environment locally.
+
 6.  Start the server.
 
 ```
-$ python run.py
+$ gunicorn app:app
 ```
 
-7.  Open http://0.0.0.0:5000 in your browser.
+7.  Open http://127.0.0.1:8000 in your browser.
 
 8.  Check if your postgres database is integrated correctly by clicking: **Add a "Thing" to your database**.
 
-9.  Modify this template to your project. 
-
-	You can begin by adding styles to the placeholder CSS file living at [app/static/css/app.css](https://github.com/sharonzhou/flask-postgres/blob/master/app/static/css/app.css), and adding scripts to the placeholder Javascript file living at [app/static/js/app.js](https://github.com/sharonzhou/flask-postgres/blob/master/app/static/js/app.js). 
+9.  Reset the database. 
+```
+$ python reset_db.py
+``` 

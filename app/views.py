@@ -79,8 +79,7 @@ def login():
                     data_dir_id = data_dir.id
                 else:
                     # Else, everything is done... so redirect to page saying task is over
-                    next_data = { 'url_': '/hitover' } #TODO
-                    next_data = { 'url_': '/index' }
+                    next_data = { 'url_': '/hitover' }
                     return json.dumps({"data": next_data, "success": True})
         
         uid = Worker(amt_id=amt_id,
@@ -93,6 +92,8 @@ def login():
         session['amt_id'] = amt_id
 
         session['data_dir_id'] = data_dir_id
+
+        session['counter'] = 0
 
         print('session is', session)
 
@@ -121,6 +122,8 @@ def finish():
         data_dir.status = "complete"
         db.session.commit()
         
+        print(f'user {session} successfully finishes with completion code {completion_code}')
+        
         return render_template("finish.html", completion_code=completion_code)
     
     # Did not pass tutorial
@@ -142,6 +145,8 @@ def finish():
         data_dir = DataDir.query.get(data_dir_id)
         data_dir.status = "unassigned"
         db.session.commit()
+        
+        print(f'spammer {session} finishes with completion code {completion_code}')
 
         return render_template("sorry.html", completion_code=completion_code)
     
@@ -154,10 +159,13 @@ def finish():
             if check_worker_exists is not None:
                 completion_code = check_worker_exists.completion_code
                 if completion_code[:2] == "SH":
+                    print(f'user {session} revisits finish page with completion code {completion_code}')
                     return render_template("finish.html", completion_code=completion_code)
                 elif completion_code[:3] == "EDZ":
+                    print(f'spammer {session} revisits finish page with completion code {completion_code}')
                     return render_template("sorry.html", completion_code=completion_code)
                 elif completion_code == "incomplete":
+                    print(f'repeat incomplete completion code user {session}')
                     return render_template("repeat.html")
 
         return render_template("index.html")
@@ -174,7 +182,7 @@ def idle():
     worker.passed_tutorial = 0
     db.session.commit()
 
-    session['spammer'] = True
+    print(f'user {session} idle and dropped out')
 
     # Redirect to home
     return render_template("index.html")
@@ -195,14 +203,14 @@ def start():
     data_dir_id = session['data_dir_id']
     data_dir_name = str(data_dir_id - 1)
 
-    worker_imgs = worker_urls[data_dir_name]
-    img_filepath = worker_imgs[0] 
+    tutorial_url_idx = 0
+    img_filepath = worker_urls['spammers'][tutorial_url_idx]
 
     image = {}
     image['bg-div'] = img_filepath
-    image['img'] = 'https://hypeaug2019.s3.amazonaws.com/Hype_120/spammers/output000.jpg'
+    image['img'] = img_filepath
 
-    print(image)
+    print(f'uid {uid} starts with {data_dir_id} data dir')
     return render_template("task.html", image=image)
 
 @app.route("/feedback", methods=['GET', 'POST'])
@@ -236,7 +244,7 @@ def feedback():
         if 'counter' not in session:
             session['counter'] = 0
         session['counter'] += 1
-        print('counter is', session['counter'])
+        print('counter is', session['counter'], 'for uid', session['uid'])
         counter = session['counter']
 
         # Increment num correct counter
@@ -248,17 +256,27 @@ def feedback():
 
         next_data = {}
         #next_data["bg-div"] = np.random.choice(num_images)
+        
+        # Check if completed task
+        if counter >= num_per_task:
+            next_data['is_finished'] = True
+            session['is_finished'] = True
+
+            print('uid', session['uid'], 'completed!')
+
+            return json.dumps({"data": next_data, "success": True})
 
         # Check if gone through tutorial or on to worker's own task
-        if counter >= num_tutorial:
+        elif counter >= num_tutorial:
+            
             # Check if passed tutorial
             if counter == num_tutorial and frac_correct < tutorial_pass_acc:
 
                 # Log out and give completion code with certain money amount
-                next_data['spammer'] = True
+                next_data['is_finished'] = True
                 session['spammer'] = True
 
-                print('spammer detected. next data', next_data)
+                print('uid', session['uid'], 'spammer detected. next data', next_data)
 
                 return json.dumps({"data": next_data, "success": True})
             
@@ -278,6 +296,8 @@ def feedback():
                     data_dir.status = "assigned"
                     db.session.commit()
 
+                    print('uid', session['uid'], 'passed tutorial!')
+
                 worker_url_idx = counter - num_tutorial
                
                 data_dir_id = session['data_dir_id']
@@ -285,11 +305,13 @@ def feedback():
                 
                 next_data["bg-div"] = worker_urls[data_dir_name][worker_url_idx]
                 next_data['spammer'] = False
+                print('[task] next data', next_data, 'for uid', session['uid'])
         else:
             # Still in tutorial
             tutorial_url_idx = counter
             next_data["bg-div"] = worker_urls['spammers'][tutorial_url_idx]
             next_data['spammer'] = False
+            print('[tutorial] next data', next_data, 'for uid', session['uid'])
 
         next_data["counter"] = counter
         next_data["frac_correct"] = str(frac_correct)
@@ -303,6 +325,7 @@ def feedback():
 
 @app.route("/hitover")
 def hitover():
+    print('hit is over!')
     return render_template("hitover.html")
 
 # S3 preprocess step/endpoint
