@@ -30,9 +30,10 @@ Inserting data dirs
 """
 def populate_db(db):
     print("Populating db with data dirs")
-
+    
+    dropped = [55, 57, 75, 97]
     for name in range(100):
-        if name != 97:
+        if name not in dropped:
             item = DataDir(name=name)
             db.session.add(item)
             db.session.commit()
