@@ -92,6 +92,7 @@ def login():
         session['amt_id'] = amt_id
 
         session['data_dir_id'] = data_dir_id
+        session['data_dir_name'] = str(data_dir.name)
 
         session['counter'] = 0
 
@@ -201,7 +202,7 @@ def start():
     #img = np.random.choice(num_images)
     
     data_dir_id = session['data_dir_id']
-    data_dir_name = str(data_dir_id - 1)
+    data_dir_name = session['data_dir_name']
 
     tutorial_url_idx = 0
     img_filepath = worker_urls['spammers'][tutorial_url_idx]
@@ -210,7 +211,7 @@ def start():
     image['bg-div'] = img_filepath
     image['img'] = img_filepath
 
-    print(f'uid {uid} starts with {data_dir_id} data dir')
+    print(f'uid {uid} starts with {data_dir_id} data dir, name {data_dir_name}')
     return render_template("task.html", image=image)
 
 @app.route("/feedback", methods=['GET', 'POST'])
@@ -301,7 +302,7 @@ def feedback():
                 worker_url_idx = counter - num_tutorial
                
                 data_dir_id = session['data_dir_id']
-                data_dir_name = str(data_dir_id - 1)
+                data_dir_name = session['data_dir_name']
                 
                 next_data["bg-div"] = worker_urls[data_dir_name][worker_url_idx]
                 next_data['spammer'] = False
