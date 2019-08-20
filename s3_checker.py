@@ -9,5 +9,9 @@ with open('app/static/s3_data.json') as f:
 for i in range(100):
     if str(i) not in worker_urls.keys():
         print(f'{i} not in worker keys!')
+
+for v in worker_urls.values():
+    if len(v) < 50:
+        print(f'{v} is too short')
  
 
