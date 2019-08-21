@@ -1,5 +1,6 @@
 import json
 
+print('Note this checks the file s3_data.json. Need to run /files first.')
 with open('app/static/s3_data.json') as f:
     data = json.load(f)
     img_urls = data['img_urls']

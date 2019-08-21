@@ -130,7 +130,7 @@ $(document).ready(function () {
 
     function timerIncrement() {
         idle_time = idle_time + 1;
-        if (idle_time > 8) { // 8 sec
+        if (idle_time > 20) { // 20 sec
             // Redirect, if not already redirected or at end task screen
             if ((window.location.href.indexOf("idle") == -1) && (window.location.href.indexOf("finish") == -1)) {
                 $(location).attr('href', '/idle');

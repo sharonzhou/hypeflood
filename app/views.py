@@ -144,8 +144,10 @@ def finish():
         # Update data dir in db - unassigned
         data_dir_id = session['data_dir_id']
         data_dir = DataDir.query.get(data_dir_id)
-        data_dir.status = "unassigned"
-        db.session.commit()
+        # TODO: For cleaner method, technically should check if another user is working on this and has it softassigned to them
+        if data_dir.status == "softassigned":
+            data_dir.status = "unassigned"
+            db.session.commit()
         
         print(f'spammer {session} finishes with completion code {completion_code}')
 
@@ -294,8 +296,11 @@ def feedback():
 
                     # Update data dir in db - assigned
                     data_dir = DataDir.query.get(session['data_dir_id'])
-                    data_dir.status = "assigned"
-                    db.session.commit()
+                    # Only if someone else has not completed it 
+                    # TODO: If someone else has completed it, assigned a different data_dir_id
+                    if data_dir.status != "complete":
+                        data_dir.status = "assigned"
+                        db.session.commit()
 
                     print('uid', session['uid'], 'passed tutorial!')
 
@@ -334,6 +339,15 @@ def hitover():
 def get_files():
     # Sasha only -> move to constants
     S3_BUCKET = 'hypeaug2019'
+    S3_BUCKET_SUBDIR = 'Hype_120_v2' # Hype_120
+
+    # This is a backup suffix for file to avoid override of production s3 data json file
+    OUTFILE_SUFFIX = 'v2' # v1
+    
+    outfile_path = Path(f'app/static/s3_data.json')
+    if outfile_path.exists():
+        outfile_path = Path(f'app/static/s3_data_{OUTFILE_SUFFIX}.json')
+        print(f'Saving to backup file {outfile_path}. Make sure to cp to s3_data.json for production.')
 
     s3 = boto3.resource('s3')
     s3.meta.client.meta.events.register('choose-signer.s3.*', disable_signing)
@@ -345,6 +359,8 @@ def get_files():
     tutorial_img_urls = []
     worker_urls = {}
     for obj in summaries:
+        if S3_BUCKET_SUBDIR not in obj.key:
+            continue
         img_url = base_url + obj.key
         all_img_urls.append(img_url)
 
@@ -384,8 +400,8 @@ def get_files():
 
     # Storing this locally for now - should be on requester side, not this worker facing app
     # Which then creates a json file containing this object or something
-    with open('app/static/s3_data.json', 'w') as f:
+    with open(f'', 'w') as f:
         j = json.dumps(s3_data)
         f.write(j)
 
-    return s3_data
+    return render_template('files.html', s3_data=s3_data)
