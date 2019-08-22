@@ -1,10 +1,10 @@
 import os, csv, sys, boto3, math
 
 HIT_IDS = [
-	    "3MXX6RQ9EVK2J7YNCDA7C45UE8Y4PK",
-	    "3PGQRAZX02ZFU6SZT128NYECWS3YSC",
-	    "3GONHBMNHVDC11PZ5Q85PWO8AX7MZX",
-	    "3ZZAYRN1I664FS1CCEY0VCCWK10OTY",
+	    "3RWB1RTQDJ2328LPOG0KTGLZGUDP8V",
+	    "3FJ2RVH25ZL7O63TRAVMXZ8HPQ392H",
+	    "3566S7OX5DYWL2X4T9XOEK762U717M",
+            "30IRMPJWDZY89M35AX1COGU5CC0RKD",
           ]
 
 MAX_ASSIGNMENTS_PER_HIT = 300
@@ -31,30 +31,37 @@ for hit_id in HIT_IDS:
         while is_next_token:
             response = client.list_assignments_for_hit(HITId=hit_id, NextToken=next_token)
             assignments.extend(response['Assignments'])
-            print(f'found assignments for hit {hit_id}')
+            print(f'Found assignments for hit {hit_id}')
             if 'NextToken' in response:
                 print('next token')
                 next_token = response['NextToken']
             else:
                 is_next_token = False
     else:
-        print(f'found assignments for hit {hit_id}')
+        print(f'Found assignments for hit {hit_id}')
         assignments.extend(response['Assignments'])
 print(len(assignments))
 
 workers = []
+worker_ids = []
 bonus_workers = []
 for assignment in assignments:
     assignment_id = assignment['AssignmentId']
     worker_id = assignment['WorkerId']
 	
+    if worker_id in worker_ids:
+        print(f'Repeat worker {worker_id}.')
+        continue
+        
     answer = assignment['Answer']
     code = answer.split('<Answer><QuestionIdentifier>code</QuestionIdentifier><FreeText>')[-1].split('</FreeText></Answer><Answer><QuestionIdentifier>feedback for us</QuestionIdentifier>')[0]
-    print(f'code is {code}')
+    print(f'Code is {code}')
     worker = {"worker_id": worker_id, "assignment_id": assignment_id, "code": code}
     if code[:2] == "SH":
         bonus_workers.append(worker)
+    
     workers.append(worker)
+    worker_ids.append(worker_id)
 
 print("Total number of workers: {}".format(len(workers)))
 print("Total number of bonus workers: {}".format(len(bonus_workers)))

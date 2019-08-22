@@ -33,8 +33,10 @@ cursor.execute(query)
 data_dirs = cursor.fetchall()
 
 
-# Get valid workers
-# id > 70, completion code starting with SH
+# Get valid workers: completion code starting with SH
+# id > 70 for v1
+# id > 351 for v2, last worker id from v1
+MIN_VALID_WORKER_ID = 351
 wcols2id = { 'id': 0,
             'amt_id': 1,
             'data_dir_id': 2,
@@ -43,7 +45,7 @@ wcols2id = { 'id': 0,
             'completion_code': 5,
           }
 
-valid_workers = [ (w[wcols2id['id']], w[wcols2id['data_dir_id']]) for w in workers if w[wcols2id['completion_code']][:2] == "SH" ]
+valid_workers = [ (w[wcols2id['id']], w[wcols2id['data_dir_id']]) for w in workers if w[wcols2id['completion_code']][:2] == "SH" and w[wcols2id['id'] > MIN_VALID_WORKER_ID ]
 valid_worker_ids = [ vw[0] for vw in valid_workers ]
 print('valid workers (uid, data_dir_id)', valid_workers, len(valid_workers))
 
@@ -59,6 +61,8 @@ scols2id = { 'id': 0,
 
 valid_selections = [ (s[scols2id['img_name']], s[scols2id['selected']], s[scols2id['correctness']], s[scols2id['uid']]) for s in selections if s[scols2id['uid']] in valid_worker_ids ]
 print('valid selections (img_name, selected (real/fake), correctness, uid)', len(valid_selections))
+
+# TODO: Filter valid selections for repeat data dirs - randomly choose one of repeats
 
 # Group selections based on real/fake
 # Look specifically at *fake* images ('fake' in name -> look at 'output' later b/c many of them)
